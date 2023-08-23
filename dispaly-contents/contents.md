@@ -31,6 +31,7 @@
             padding: 24px;
         }
 ```
+
 <iframe src="https://codesandbox.io/embed/eager-violet-sprlwk?fontsize=14&hidenavigation=1&theme=dark"
      style="width:100%; height:500px; border:0; border-radius: 4px; overflow:hidden;"
      title="eager-violet-sprlwk"
@@ -55,12 +56,14 @@
             padding: 24px;
         }
 ```
+
 <iframe src="https://codesandbox.io/embed/frosty-waterfall-8rsv77?fontsize=14&hidenavigation=1&theme=dark"
      style="width:100%; height:500px; border:0; border-radius: 4px; overflow:hidden;"
      title="frosty-waterfall-8rsv77"
      allow="accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope; hid; microphone; midi; payment; usb; vr; xr-spatial-tracking"
      sandbox="allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts"
    ></iframe>
+   
 
 看出第一个例子中子元素上下排列；第二个例子中子元素在同一行，也就是说`flex`布局作用到到子元素。同时第一个元素的边框也没有显示出来。所以设置`display:contents`的元素不会参与布局，但是可继承属性会被子元素继承，比如上面的`color`属性，但是`padding`属性就无效了。
 
