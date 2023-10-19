@@ -49,25 +49,26 @@ react在 updateQueue上用`baseState`、`firstBaseUpdate`、`lastBaseUpdate`来�
 2. firstBaseUpdate：第一个被跳过的Update
 3. lastBaseUpdate：最后一个Update，只要有Update被跳过，那么该元素就指向updateQueue的最后一个节点。
    
+下面看一下processUpdateQueue源码的执行逻辑。
 
+### 将新的update追加到现有的baseUpdate后面
 
-```js
-export function processUpdateQueue<State>(
-  workInProgress: Fiber,
-  props: any,
-  instance: any,
-  renderLanes: Lanes,
-): void {
-  // This is always non-null on a ClassComponent or HostRoot
+```
   const queue: UpdateQueue<State> = (workInProgress.updateQueue: any);
 
-   // xxxxxxxxxx
-  let firstBaseUpdate = queue.firstBaseUpdate;
-  let lastBaseUpdate = queue.lastBaseUpdate;
+  hasForceUpdate = false;
 
-  // 将新的update追加到lastBaseUpdate后面
-  let pendingQueue = queue.shared.pending;
+  if (__DEV__) {
+    currentlyProcessingQueue = queue.shared;
+  }
+
+  let firstBaseUpdate = queue.firstBaseUpdate; // 上次执行后的第一个baseUpdate
+  let lastBaseUpdate = queue.lastBaseUpdate; // 上次执行后的最后一个
+
+  // Check if there are pending updates. If so, transfer them to the base queue.
+  let pendingQueue = queue.shared.pending; // 本次待处理的update
   if (pendingQueue !== null) {
+    
     queue.shared.pending = null;
 
     // The pending queue is circular. Disconnect the pointer between first
@@ -75,22 +76,50 @@ export function processUpdateQueue<State>(
     const lastPendingUpdate = pendingQueue;
     const firstPendingUpdate = lastPendingUpdate.next;
     lastPendingUpdate.next = null;
-    // Append pending updates to base queue
+    /**
+     * 将pending update 追加到 base update上 
+     * */ 
     if (lastBaseUpdate === null) {
+      /**
+       * 如果baseUpdate没有数据，就是说上一次没有出现跳过某个update的情况，那么就将 firstBaseUpdate就为pendingUpdate的第一个节点 
+       */
       firstBaseUpdate = firstPendingUpdate;
     } else {
       lastBaseUpdate.next = firstPendingUpdate;
     }
+    /**
+     * lastBaseUpdate 设置为pendingUpdate的最后一个update
+     */
     lastBaseUpdate = lastPendingUpdate;
+
+    /**
+     * current 也做上面同样的处理
+     */
+    const current = workInProgress.alternate;
+    if (current !== null) {
+      // This is always non-null on a ClassComponent or HostRoot
+      const currentQueue: UpdateQueue<State> = (current.updateQueue: any);
+      const currentLastBaseUpdate = currentQueue.lastBaseUpdate;
+      if (currentLastBaseUpdate !== lastBaseUpdate) {
+        if (currentLastBaseUpdate === null) {
+          currentQueue.firstBaseUpdate = firstPendingUpdate;
+        } else {
+          currentLastBaseUpdate.next = firstPendingUpdate;
+        }
+        currentQueue.lastBaseUpdate = lastPendingUpdate;
+      }
+    }
   }
+```
+每次处理update时都要从上一次第一个跳过的位置开始计算，比如计算`B2`时要用`A1`的结果`2`作为初始值，而不是`C1`的结果`3`；同时将新的update追加在后面，这样最终的执行顺序才是正确的。
 
 
-  // These values may change as we process the queue.
+### 执行baseUpdate
+```js
+   // 如果存在上次跳过的Update，就执行该逻辑
+  // 如果baseUpdate存在相同或者更高的优先级的任务，就执行优先级对应的任务
   if (firstBaseUpdate !== null) {
-    // Iterate through the list of updates to compute the result.
     let newState = queue.baseState;
-    // TODO: Don't need to accumulate this. Instead, we can remove renderLanes
-    // from the original lanes.
     let newLanes = NoLanes;
 
     let newBaseState = null;
@@ -98,11 +127,15 @@ export function processUpdateQueue<State>(
     let newLastBaseUpdate = null;
 
     let update = firstBaseUpdate;
+    // 开始处理update
     do {
       const updateLane = update.lane;
       const updateEventTime = update.eventTime;
+      // 
       if (!isSubsetOfLanes(renderLanes, updateLane)) {
-        // 如果优先级不够，跳过该update。如果是第一个跳过的update，就把前一个update的state作为baseState
+        /**
+         * 将优先级不够的任务添加到新的firstBaseUpdate上，执行结束后添加到fiber的updateQueue的firstBaseUpdate上
+         */
         const clone: Update<State> = {
           eventTime: updateEventTime,
           lane: updateLane,
@@ -114,24 +147,30 @@ export function processUpdateQueue<State>(
           next: null,
         };
         if (newLastBaseUpdate === null) {
-          // newFirstBaseUpdate 指向第一个被跳过的update
+          /**
+           * 第一个跳过的update作为新的firstBaseUpdate，后面会放在udpateQueue上
+           */
           newFirstBaseUpdate = newLastBaseUpdate = clone;
-          // 同时设置baseState为前一个update的执行结果 
+          /**
+           * 第一个跳过的任务的前一个任务的执行后的state
+           */
           newBaseState = newState;
         } else {
-          // 设置 lastBaseUpdate，指向最后一个update
           newLastBaseUpdate = newLastBaseUpdate.next = clone;
         }
-        // Update the remaining priority in the queue.
         newLanes = mergeLanes(newLanes, updateLane);
       } else {
-        // 如果优先级足够，则执行该update
-        // This update does have sufficient priority.
-
+        /**
+         * 如果优先级足够，就执行update
+         */
         if (newLastBaseUpdate !== null) {
-           // 如果存在跳过的update，后面的update优先级即使够，也需要加入到baseUpdate中
+          /**
+           * 如果newLastBaseUpdate存在，说明前面又跳过的Update，后续的所有Update又要重新形成baseUpdate
+           */
           const clone: Update<State> = {
             eventTime: updateEventTime,
+            lane: NoLane,
+
             tag: update.tag,
             payload: update.payload,
             callback: update.callback,
@@ -141,7 +180,9 @@ export function processUpdateQueue<State>(
           newLastBaseUpdate = newLastBaseUpdate.next = clone;
         }
 
-        // Process this update.
+        /**
+         * 处理update后得到新的state
+         */
         newState = getStateFromUpdate(
           workInProgress,
           queue,
@@ -150,15 +191,36 @@ export function processUpdateQueue<State>(
           props,
           instance,
         );
-        // xxxx
+        const callback = update.callback;
+        if (
+          callback !== null &&
+          // If the update was already committed, we should not queue its
+          // callback again.
+          update.lane !== NoLane
+        ) {
+          workInProgress.flags |= Callback; // 标记这个fiber需要执行state更新后的回调
+          const effects = queue.effects; // 收集副作用，放到update上
+          if (effects === null) {
+            queue.effects = [update];
+          } else {
+            effects.push(update);
+          }
+        }
       }
-      update = update.next;
-      if (update === null) {
+      update = update.next; 
+      if (update === null) { 
+        /**
+         * 如果baseUpdate执行完了，判断是否又产生了新的update
+         */
         pendingQueue = queue.shared.pending;
         if (pendingQueue === null) {
           break;
         } else {
-          // xxx
+          // An update was scheduled from inside a reducer. Add the new
+          // pending updates to the end of the list and keep processing.
+          const lastPendingUpdate = pendingQueue;
+          // Intentionally unsound. Pending updates form a circular list, but we
+          // unravel them when transferring them to the base queue.
           const firstPendingUpdate = ((lastPendingUpdate.next: any): Update<State>);
           lastPendingUpdate.next = null;
           update = firstPendingUpdate;
@@ -171,18 +233,44 @@ export function processUpdateQueue<State>(
     if (newLastBaseUpdate === null) {
       newBaseState = newState;
     }
-    // 设置新的baseState、firstBaseUpdate和lastBaseUpdate
-    queue.baseState = ((newBaseState: any): State);
+    
+    /**
+     * 执行完毕后将 baseState、firstBaseUpdate和lastBaseUpdate设置到updateQueue上
+     */
+    queue.baseState = ((newBaseState: any): State); 
     queue.firstBaseUpdate = newFirstBaseUpdate;
     queue.lastBaseUpdate = newLastBaseUpdate;
 
-    // 省略。。。。。
+    const lastInterleaved = queue.shared.interleaved;
+    if (lastInterleaved !== null) {
+      let interleaved = lastInterleaved;
+      do {
+        newLanes = mergeLanes(newLanes, interleaved.lane);
+        interleaved = ((interleaved: any).next: Update<State>);
+      } while (interleaved !== lastInterleaved);
+    } else if (firstBaseUpdate === null) {
 
-    workInProgress.memoizedState = newState;
+      queue.shared.lanes = NoLanes;
+    }
+
+    markSkippedUpdateLanes(newLanes);
+    workInProgress.lanes = newLanes; // 将优先级不够的lanes放到节点的lanes上
+    /**
+     * 更新state
+    */
+    workInProgress.memoizedState = newState; // 设置新的state
   }
-}
 ```
+每次处理update时都会先判断优先级：
+1. 如果优先级不够，就跳过。同时设置新的baseState，firstBaseUpdate，lastBaseUpdate.
+2. 如果优先级够：
+  1. 如果存在跳过的update，则该节点也要在baseUpdate上
+  2. 执行udpate，得到新的state
+  3. 将新的baseState、firstBaseUpdate、lastBaseUpdate添加到updateQueue上。
 
+
+## 总结
+react使用baseUpdate和baseState来保证class组件中更新的正确性，因为react每次更新都会产生一个update，每个update的优先级不同；同时每个更新任务只会处理最高优先级的update，所以优先级低的就会跳过，下一次再处理。
 
 
 
