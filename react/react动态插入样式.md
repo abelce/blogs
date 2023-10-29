@@ -2,11 +2,10 @@
 
 ## 插入样式
 
-通常是在useEffect中动态创建`style`标签
+通常是在useLayoutEffect中动态创建`style`标签
 
 ```ts
-  const ref = useRef<HTMLStyleElement>();
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!ref.current) {
       const style = document.createElement('style');
       document.head.append(style);
@@ -17,6 +16,7 @@
     return () => {
       if (ref.current) {
         document.head.removeChild(ref.current);
+        ref.current = undefined;
       }
     };
   }, [css]);
