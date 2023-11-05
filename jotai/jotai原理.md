@@ -1,6 +1,81 @@
 文章基于Jotai版本：2.2.1，备注后的代码地址[https://github.com/abelce/jotai-study](https://github.com/abelce/jotai-study)。
 下面只介绍了atom的同步执行逻辑，异步代码请自行忽略。为了便于阅读，删了一些ts类型和备注
 
+
+## 介绍
+
+## 使用
+
+https://codesandbox.io/s/jotai-demo-47wvh
+https://codesandbox.io/s/jotai-demo-forked-x2g5d
+
+#### 创建atom
+
+```ts
+import { atom } from 'jotai'
+
+const countAtom = atom(0)
+```
+
+#### 在组件中使用
+```tsx
+import { useAtom } from 'jotai'
+
+function Counter() {
+  const [count, setCount] = useAtom(countAtom)
+  return (
+    <h1>
+      {count}
+      <button onClick={() => setCount((c) => c + 1)}>add</button>
+    </h1>
+    )
+}
+```
+
+#### 衍生atom
+
+```tsx
+const doubledCountAtom = atom((get) => get(countAtom) * 2)
+
+function DoubleCounter() {
+  const [doubledCount] = useAtom(doubledCountAtom)
+  return <h2>{doubledCount}</h2>
+}
+```
+从多个atom衍生
+
+```ts
+const count1 = atom(1)
+const count2 = atom(2)
+const count3 = atom(3)
+
+const sum = atom((get) => get(count1) + get(count2) + get(count3))
+```
+
+#### 可读可写atom
+默认atom就是可读可写的
+
+```ts
+const decrementCountAtom = atom(
+  (get) => get(countAtom),
+  (get, set, _arg) => set(countAtom, get(countAtom) - 1)
+)
+```
+
+#### 只读atom
+
+```ts
+const readOnlyAtom = atom((get) => get(priceAtom) * 2)
+```
+
+#### 只写atom
+
+```ts
+const multiplyCountAtom = atom(null, (get, set, by) =>
+  set(countAtom, get(countAtom) * by)
+)
+```
+
 ## atom 函数
 
 
