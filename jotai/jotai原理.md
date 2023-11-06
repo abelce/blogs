@@ -12,8 +12,7 @@ Jotai版本：2.2.1
 
 ## 使用
 
-https://codesandbox.io/s/jotai-demo-47wvh
-https://codesandbox.io/s/jotai-demo-forked-x2g5d
+[例子](https://github.com/pmndrs/jotai/tree/main/examples)
 
 #### 创建atom
 
@@ -152,7 +151,7 @@ export function atom<Value, Args extends unknown[], Result>(
 ## useAtom
 
 useAtom使用atom与store结合起来的桥梁,使用 `useAtomValue`读取值、`useSetAtom`设置atom的值
-![//file.vwood.xyz/2023/08/19/upload_tilhjximg25aw5dm3pdm4zzl6o9302ye.png](//file.vwood.xyz/2023/08/19/upload_tilhjximg25aw5dm3pdm4zzl6o9302ye.png)
+![upload_tilhjximg25aw5dm3pdm4zzl6o9302ye.webp](./upload_tilhjximg25aw5dm3pdm4zzl6o9302ye.webp)
 
 
 useAtomValue代码如下：
@@ -240,7 +239,7 @@ store有三个常用的方法：
 + get: 获取atom的值，上面 `useAtomValue` 中使用过
 + set：设置值，useSetAtom使用来更新atom
 + sub：订阅atom，atom状态更新时调用
-![//file.vwood.xyz/2023/08/19/upload_fjkayvw2bab4ud43pxtj6z710plmljg9.png](//file.vwood.xyz/2023/08/19/upload_fjkayvw2bab4ud43pxtj6z710plmljg9.png)
+![upload_fjkayvw2bab4ud43pxtj6z710plmljg9.png](./upload_fjkayvw2bab4ud43pxtj6z710plmljg9.webp)
 
 
 store中atom的依赖关系，atomB可以通过atomA衍生而来，当atomA发生变化时，atomB会自动更新，如下:
@@ -379,7 +378,7 @@ const readAtomState = <Value>(atom: Atom<Value>): AtomState<Value> => {
 
    1. 如果getter的参数 a=== atom，表示依赖atom本身， 创建atom的时候read不是function，使用默认的read函数
 
-       ![](https://img-blog.csdnimg.cn/img_convert/77280644fdf69943e13f1dac211f69a9.png)
+    ![](./77280644fdf69943e13f1dac211f69a9.png)
 
    2. a !== atom时，获取依赖a的state并起value
 
