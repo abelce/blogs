@@ -73,23 +73,12 @@ const decrementCountAtom = atom(
 const readOnlyAtom = atom((get) => get(countAtom) * 2)
 ```
 
-或者
-```ts
-const count = useAtomValue(countAtom)
-```
-
 #### 只写atom
 
 ```ts
 const multiplyCountAtom = atom(null, (get, set, by) =>
   set(countAtom, get(countAtom) * by)
 )
-```
-
-
-或者
-```ts
-const setCount = useSetAtom(countAtom)
 ```
 
 #### 本地存储 [atomWithStorage](https://jotai.org/docs/utilities/storage)
@@ -287,8 +276,6 @@ type Mounted = {
 
 + l: atom的监听函数，useAtomValue中通过store.sub订阅的函数存放在这里
 + t: 维护上面提到的dependent
-
-
 
 
 
