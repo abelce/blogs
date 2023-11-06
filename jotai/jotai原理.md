@@ -376,11 +376,9 @@ const readAtomState = <Value>(atom: Atom<Value>): AtomState<Value> => {
 
 2. atomState不存在，执行 atom.read 获取value，同时通过nextDependencies收集依赖
 
-   1. 如果getter的参数 a=== atom，表示依赖atom本身， 创建atom的时候read不是function，使用默认的read函数
+  1. 如果getter的参数 a=== atom，表示依赖atom本身， 创建atom的时候read不是function，使用默认的read函数![77280644fdf69943e13f1dac211f69a9.png](./77280644fdf69943e13f1dac211f69a9.png)
 
-    ![](./77280644fdf69943e13f1dac211f69a9.png)
-
-   2. a !== atom时，获取依赖a的state并起value
+  2. a !== atom时，获取依赖a的state并起value
 
 3. 调用 `setAtomValueOrPromise(atom, valueOrPromise, nextDependencies, () =>controller?.abort())`，设置atom的value和dependencies。
 
