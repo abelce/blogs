@@ -1,8 +1,14 @@
-文章基于Jotai版本：2.2.1，备注后的代码地址[https://github.com/abelce/jotai-study](https://github.com/abelce/jotai-study)。
-下面只介绍了atom的同步执行逻辑，异步代码请自行忽略。为了便于阅读，删了一些ts类型和备注
-
+Jotai版本：2.2.1
 
 ## 介绍
+[Jotai](https://jotai.org/docs/introduction)是一种原子化的状态管理方案。
+
+特征:
+  + 核心API 2kb
+  + 很多的实用工具和集成
+  + 支持TypeScript
+  + 适用于 Next.js、Gatsby、Remix 和 React Native
+  + 使用 SWC 和 Babel 插件响应快速刷新
 
 ## 使用
 
@@ -65,7 +71,12 @@ const decrementCountAtom = atom(
 #### 只读atom
 
 ```ts
-const readOnlyAtom = atom((get) => get(priceAtom) * 2)
+const readOnlyAtom = atom((get) => get(countAtom) * 2)
+```
+
+或者
+```ts
+const count = useAtomValue(countAtom)
 ```
 
 #### 只写atom
@@ -76,16 +87,31 @@ const multiplyCountAtom = atom(null, (get, set, by) =>
 )
 ```
 
-## atom 函数
 
+或者
+```ts
+const setCount = useSetAtom(countAtom)
+```
 
+#### 本地存储 [atomWithStorage](https://jotai.org/docs/utilities/storage)
+支持将数据持久化到本地
+
+[在线例子](https://codesandbox.io/s/jotai-persistence-vuwi7?from-embed=&file=/src/app.js:181-196)
+
+#### 缓存 [atomFamily](https://jotai.org/docs/utilities/family)
+使用atomFamily复用已存在的atom 
+
+#### 数组 [splitAtom](https://jotai.org/docs/utilities/split)
+对数据项自动进行atom包装，同时提供了`remove`、`insert`和`move`操作
+
+## atom
 atom函数用于创建atom配置，紧紧只是一个配置对象，不保存atom的值(原始atom会将默认值保存在init中)，atom对象是不可变的，值保存在store中，通过`store.get`获取
 
 ```ts
 const countAtom = atom(10);
 ```
 
-下面是atom源码:
+atom源码:
 
 ```ts
 export function atom<Value, Args extends unknown[], Result>(
