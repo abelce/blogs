@@ -1,14 +1,21 @@
-Jotai版本：2.2.1
 
 ## 介绍
-[Jotai](https://jotai.org/docs/introduction)是一种原子化的状态管理方案。
+[Jotai](https://jotai.org/docs/introduction)是一种原子化的状态管理方案。采用的 `Atom` + `hook` + `Context`的方式来解决React的数据管理。
+
+当`Atom`更新的时候不会触发Context的更新，只会更新订阅了`Atom`的组件。
+
+Jotai 有一个非常小的 API，并且是面向 TypeScript 的。 它与 React 的集成 useState hook 一样简单易用，但所有状态都是全局可访问的，派生状态易于实现，并且自动消除了额外的重新渲染
+
+同时还提供了`jotai/utils`，这些函数增加了对在 localStorage（或 URL 哈希）中保留原子状态、在服务器端渲染期间混合原子状态、创建具有 set 函数（包括类似 Redux 的 reducers 和 action 类型）的原子等等的支持！
 
 特征:
-  + 核心API 2kb
+  + 核心API只有2KB
   + 很多的实用工具和集成
-  + 支持TypeScript
+  + 对TypeScript友好
   + 适用于 Next.js、Gatsby、Remix 和 React Native
   + 使用 SWC 和 Babel 插件响应快速刷新
+
+本文基于jotai v2.2.1版本。
 
 ## 使用
 
@@ -22,7 +29,7 @@ import { atom } from 'jotai'
 const countAtom = atom(0)
 ```
 
-#### 在组件中使用
+在组件中使用
 ```tsx
 import { useAtom } from 'jotai'
 
@@ -81,6 +88,8 @@ const multiplyCountAtom = atom(null, (get, set, by) =>
 )
 ```
 
+## 工具函数
+Jotai提供了一些使用的工具函数，方便业务使用。
 #### 本地存储 [atomWithStorage](https://jotai.org/docs/utilities/storage)
 支持将数据持久化到本地
 
@@ -323,7 +332,7 @@ const readAtomState = <Value>(atom: Atom<Value>): AtomState<Value> => {
       if ((a as AnyAtom) === atom) {
         // 如果依赖的是atom本身，
         const aState = getAtomState(a)
-        // 现在atomStateMap上查找state
+        // 先在atomStateMap上查找state
         if (aState) {
           nextDependencies.set(a, aState)
           return returnAtomValue(aState)
@@ -338,7 +347,7 @@ const readAtomState = <Value>(atom: Atom<Value>): AtomState<Value> => {
       }
       // a !== atom
       const aState = readAtomState(a)
-      // 收集依赖
+      // 设置依赖
       nextDependencies.set(a, aState)
       // 返回a的value
       return returnAtomValue(aState)
@@ -430,7 +439,7 @@ setAtomValueOrPromise中调用setAtomValue
 
 ```
 
-没有都会创建新的state对象nextAtomState，依赖`d`默认使用旧的`prevAtomState?.d || new Map()`，使用nextDependencies更新依赖
+没有就会创建新的state对象nextAtomState，依赖`d`默认使用旧的`prevAtomState?.d || new Map()`，使用nextDependencies更新依赖
 
 ```ts
  const nextAtomState: AtomState<Value> = {
