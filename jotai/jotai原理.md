@@ -88,6 +88,18 @@ const multiplyCountAtom = atom(null, (get, set, by) =>
 )
 ```
 
+#### useAtomValue
+获取atom的值
+```ts
+const count = useAtomValue(countAtom)
+```
+
+#### useSetAtom
+设置atom的值
+```ts
+const setCount = useSetAtom(countAtom)
+```
+
 ## 工具函数
 Jotai提供了一些使用的工具函数，方便业务使用。
 ### 本地存储 [atomWithStorage](https://jotai.org/docs/utilities/storage)
