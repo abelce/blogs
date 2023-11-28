@@ -142,7 +142,7 @@ function getParserClass(pluginsFromOptions: PluginList): {
     hasPlugin(pluginsFromOptions, name),
   );
 
-  const key = pluginList.join("/");
+  const key = pluginList.join("/"); // 使用包含plugin的name作为key就行缓存
   // 从缓存中获取parser
   let cls = parserClassCache[key];
   if (!cls) {
@@ -158,4 +158,34 @@ function getParserClass(pluginsFromOptions: PluginList): {
   }
   return cls;
 }
+```
+
+`Parser`的继承链:
+```
+Parser -> StatementParser -> ExpressionParser -> LValParser -> NodeUtils -> UtilParser -> Tokenizer -> CommentsParser -> BaseParser
+```
+
+## 解析
+babel解析过程`token`和`ast`是同步进行的，不是将所有token解析好后再生成ast;
+
+先来看一个解析后的样子[ast在线解析](https://astexplorer.net/)，将切换成`@babel/parser`，将下面的代码复制进去:
+```js
+const a = 1;
+```
+解析结果:
+![](https://raw.githubusercontent.com/abelce/blogs/master/babel/WX20231124-172822.png)
+
+其中的`File`、`Program`基本是一样的，
+
+```ts
+  parse(): N.File {
+    this.enterInitialScopes();
+    const file = this.startNode() as N.File;// 创建File节点
+    const program = this.startNode() as N.Program; // 创建Program，属于File的子节点
+    this.nextToken(); // 开始解析token， 感觉这一步属于尝试性的解析代码，如果代码解析不了就直接报错，成功了就作为parseTopLevel解析的基础
+    file.errors = null;
+    this.parseTopLevel(file, program); // 解析program的部分，以及program关联到file上
+    file.errors = this.state.errors;
+    return file;
+  }
 ```
