@@ -101,3 +101,28 @@ type Foo2 = InferType<{name: string; age: number}>;// type Foo = string | number
 type InferType<T> = T extends (infer R)[] ? R : never;
 type Foo3 = InferType<[string, number, boolean]>; // type Foo3 = string | number | boolean
 ```
+
+## Omit
+
+忽略类型的某些属性。
+
+
+下面的代码提示缺少id、time属性。
+```ts
+type Book = {
+    id: string;
+    name: string;
+    time: number;
+}
+
+const book1: Book = { // Type '{ name: string; }' is missing the following properties from type 'Book': id, timets(2739)
+    name: "book1",
+}
+```
+
+通过`Omit`可以忽略id、time属性，只要name属性
+```ts
+const book1: Omit<Book, "id" | "time"> = {
+    name: "book1",
+}
+```
