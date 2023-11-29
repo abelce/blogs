@@ -1,12 +1,9 @@
-
-
-type Book = {
-    id: string;
-    name: string;
-    time: number;
-}
-
-
-const book1: Omit<Book, "id" | "time"> = {
-    name: "book1",
-}
+interface Todo {
+    title: string;
+  }
+   
+  const todo: Readonly<Todo> = {
+    title: "Delete inactive users",
+  };
+   
+  todo.title = "Hello";

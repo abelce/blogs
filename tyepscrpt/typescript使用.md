@@ -89,7 +89,6 @@ type StringReturnType = GetReturnType<Foo>; // string
 
 ### 推断联合类型
 
-
 ```ts
 type InferType<T> = T extends {name: infer V, age: infer V} ? V : never;
 type Foo1 = InferType<{name: string; age: string}>;// type Foo1 = string
@@ -103,9 +102,7 @@ type Foo3 = InferType<[string, number, boolean]>; // type Foo3 = string | number
 ```
 
 ## Omit
-
-忽略类型的某些属性。
-
+忽略对象的某些属性。
 
 下面的代码提示缺少id、time属性。
 ```ts
@@ -120,9 +117,89 @@ const book1: Book = { // Type '{ name: string; }' is missing the following prope
 }
 ```
 
-通过`Omit`可以忽略id、time属性，只要name属性
+通过`Omit`可以忽略id、time属性，只要name属性。
 ```ts
 const book1: Omit<Book, "id" | "time"> = {
     name: "book1",
 }
+```
+
+## Exclude 
+排除联合类型的某些类型
+
+```ts
+type Foo = "a" | "b" | "c";
+type Bar = Exclude<Foo, "a">; // type Foo = "a" | "b" | "c";
+```
+
+## Extract
+从联合类型中提取符合条件的成员
+
+下面从Foo中提取`"a"`、`"d"`，最后`Bar`为`"a"`。
+```ts
+type Foo = "a" | "b" | "c";
+type Bar = Extract<Foo, "a" | "d">; // type Bar = "a"
+```
+看看官网的例子
+```ts
+type T1 = Extract<string | number | (() => void), Function>; //type T1 = () => void
+ 
+type Shape =
+  | { kind: "circle"; radius: number }
+  | { kind: "square"; x: number }
+  | { kind: "triangle"; x: number; y: number };
+ 
+type T2 = Extract<Shape, { kind: "circle" }>
+// type T2 = {
+//     kind: "circle";
+//     radius: number;
+// }
+```
+
+## NonNullable
+排除联合类型中`undefined`、`null`
+
+下面的例子类型为`string | number`。
+```ts
+type T = NonNullable<string | number | undefined | null>; //type T = string | number
+```
+
+## Awaited
+通过对异步函数或者Promise的then进行递归的解开来获取类型。
+
+```ts
+type A = Awaited<Promise<string>>; // type A = string
+type B = Awaited<Promise<Promise<number>>>; // type B = number
+type C = Awaited<boolean | Promise<number>>; // type C = number | boolean
+```
+
+## Required
+将类型的所有属性设置为必填。
+
+下面的`Props`的属性都是可选的，但是使用`Required`后就必填了
+```ts
+interface Props {
+  a?: number;
+  b?: string;
+}
+ 
+const obj: Props = { a: 5 };
+ 
+//error: Property 'b' is missing in type '{ a: number; }' but required in type 'Required<Props>'.ts(2741)
+const obj2: Required<Props> = { a: 5 };
+```
+
+## Readonly
+将类型的所有属性标记为已读，创建的对象属性不允许再次赋值。
+
+```ts
+interface Todo {
+  title: string;
+}
+ 
+const todo: Readonly<Todo> = {
+  title: "Delete inactive users",
+};
+ 
+todo.title = "Hello"; // Cannot assign to 'title' because it is a read-only property.ts(2540)
 ```
