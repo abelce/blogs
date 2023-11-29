@@ -173,10 +173,9 @@ babel解析过程`token`和`ast`是同步进行的，不是将所有token解析�
 const a = 1;
 ```
 解析结果:
-![](https://raw.githubusercontent.com/abelce/blogs/master/babel/WX20231124-172822.png)
+![](https://file.vwood.xyz/2023/11/29/WX20231129-170634.png)
 
-其中的`File`、`Program`基本是一样的，
-
+其中的`File`、`Program`基本是一样的
 ```ts
   parse(): N.File {
     this.enterInitialScopes();
@@ -189,3 +188,91 @@ const a = 1;
     return file;
   }
 ```
+`nextToken`的逻辑，其中`codePointAtPos`用于获取当前pos位置的ASCII码，此时对应第一个字符`c`，ASCII为`99`
+
+```ts
+  nextToken(): void {
+    this.skipSpace();
+    this.state.start = this.state.pos;
+    if (!this.isLookahead) this.state.startLoc = this.state.curPosition();
+    if (this.state.pos >= this.length) {
+      this.finishToken(tt.eof);
+      return;
+    }
+
+    this.getTokenFromCode(this.codePointAtPos(this.state.pos));
+  }
+
+```
+`getTokenFromCode`中根据传入的ASCII数据来匹配关键的符号，此时`code`匹配switch的默认分支；首先通过`isIdentifierStart`判断code是否能作为标识符的第一个字符，然后调用`readWord`
+
+```ts
+  // 根据code来匹配单词
+  // chatCode源码地址 https://github.com/xtuc/charcodes/blob/master/packages/charcodes/src/index.js
+  getTokenFromCode(code: number): void {
+    switch (code) {
+      // The interpretation of a dot depends on whether it is followed
+      // by a digit or another two dots.
+
+      case charCodes.dot:
+        this.readToken_dot();
+        return;
+      // Punctuation tokens.
+      // 省略。。。。
+
+      default:
+        if (isIdentifierStart(code)) { // 如果可以作为标识符的第一个字符，就按照标识符的规则进行识别
+          this.readWord(code);
+          return;
+        }
+    }
+
+    throw this.raise(Errors.InvalidOrUnexpectedToken, {
+      at: this.state.curPosition(),
+      unexpected: String.fromCodePoint(code),
+    });
+  }
+```
+
+`readWord`逻辑:
+1. 读取一个word（此时的word=`const`字符串）
+2. 判断word是否为关键字(`keywordTypes`中的数据在程序启动时就会添加进去)，`type`是一个数字
+   1. 如果是关键字，调用`finishToken`时就传入token得文本
+   2. 否则传入获取到的word，其中`tt.name`是标识符对应的数字
+
+```ts
+  readWord(firstCode?: number): void {
+    const word = this.readWord1(firstCode); // 读取word
+    const type = keywordTypes.get(word); 
+    if (type !== undefined) { // 是否为关键字，是一个数字
+      // We don't use word as state.value here because word is a dynamic string
+      // while token label is a shared constant string
+      // 如果是关键字
+      this.finishToken(type, tokenLabelName(type)); // 通常tokenLabelName(type)的返回值就是上面的word
+    } else {
+      this.finishToken(tt.name, word);
+    }
+  }
+```
+`finishToken`逻辑：
+主要设置token得位置信息，以及token得type(此时的type为`const`)
++ type: token的类型（实际值为程序启动时自动递增的数字）
++ value: `readWord`函数读取的word为关键字时对应的字符串，否者为word本身
+```ts
+  // 处理end、type、value等信息
+  finishToken(type: TokenType, val?: any): void {
+    this.state.end = this.state.pos;
+    this.state.endLoc = this.state.curPosition();
+    const prevType = this.state.type;
+    this.state.type = type;
+    this.state.value = val;
+
+    if (!this.isLookahead) {
+      this.updateContext(prevType);
+    }
+  }
+```
+此时`const`这个token就读取出来了。
+
+### parseTopLevel
+上面读取到了第一个token(`const`的token信息)
