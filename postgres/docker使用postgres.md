@@ -9,7 +9,7 @@ COPY ./poetrydb.sql /docker-entrypoint-initdb.d/poetrydb.sql
 ```
 
 ## 初始化脚本
-创建表时，数据使用`jsonb`的方式来存储数据，这样就可以将所哟数据放在里面了
+创建表时，数据使用`jsonb`的方式来存储数据，这样就可以少见很多列
 
 poetrydb.sql:
 ```sql
@@ -52,3 +52,14 @@ docker.sh:
 
 然后链接数据库就能看到数据啦
 ![](https://file.vwood.xyz/2023/11/29/WX20231129-143353.png)
+
+
+## 索引
+如果数据量多找到查询变慢，可以对某些字段添加索引，比如:
+```sql
+CREATE INDEX index_createTime ON tbl_poetry  USING gin ((data->'createTime'));
+```
+
+## 总结
+总体来说还是比较简单的。
+
