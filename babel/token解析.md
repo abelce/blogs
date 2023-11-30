@@ -276,3 +276,95 @@ const a = 1;
 
 ### parseTopLevel
 上面读取到了第一个token(`const`的token信息)
+
+先解析`Program`，然后再将`Program`添加到`File`中，在`parseProgram`中通过`parseBlockBody`解析body部分，
+```ts
+  parseTopLevel(this: Parser, file: N.File, program: N.Program): N.File {
+    file.program = this.parseProgram(program);
+    file.comments = this.state.comments;
+
+    if (this.options.tokens) {
+      file.tokens = babel7CompatTokens(this.tokens, this.input);
+    }
+    // 结束File解析
+    return this.finishNode(file, "File");
+  }
+
+  parseProgram(
+    this: Parser,
+    program: Undone<N.Program>,
+    end: TokenType = tt.eof,
+    sourceType: SourceType = this.options.sourceType,
+  ): N.Program {
+    program.sourceType = sourceType;
+    program.interpreter = this.parseInterpreterDirective();
+    // 解析body部分
+    this.parseBlockBody(program, true, true, end);
+    if (
+      this.inModule &&
+      !this.options.allowUndeclaredExports &&
+      this.scope.undefinedExports.size > 0
+    ) {
+      for (const [localName, at] of Array.from(this.scope.undefinedExports)) {
+        this.raise(Errors.ModuleExportUndefined, { at, localName });
+      }
+    }
+    let finishedProgram: N.Program;
+    // 结束 Program 解析，然后返回到上一级的File节点
+    if (end === tt.eof) {
+      // finish at eof for top level program
+      finishedProgram = this.finishNode(program, "Program");
+    } else {
+      // finish immediately before the end token
+      finishedProgram = this.finishNodeAt(
+        program,
+        "Program",
+        createPositionWithColumnOffset(this.state.startLoc, -1),
+      );
+    }
+    return finishedProgram;
+  }
+```
+
+`parseBlockOrModuleBlockBody` -> `parseModuleItem` -> `parseModuleItem` -> `parseStatementLike` -> `parseStatementContent`.
+
+在`parseStatementContent`中，由于前面解析到了`const`，所以这里命中`tt._const`的case，并调用`parseVarStatement`，
+```ts
+      // fall through
+      case tt._const: {
+        if (!allowDeclaration) {
+          this.raise(Errors.UnexpectedLexicalDeclaration, {
+            at: this.state.startLoc,
+          });
+        }
+      }
+      // fall through
+      case tt._var: {
+        const kind = this.state.value;
+        return this.parseVarStatement(
+          node as Undone<N.VariableDeclaration>,
+          kind,
+        );
+      }
+```
+parseVarStatement:
+1. 解析出标识符`a`
+2. 通过`parseVar`解析变量声明及其init信息，
+```ts
+  parseVarStatement(
+    this: Parser,
+    node: Undone<N.VariableDeclaration>,
+    kind: "var" | "let" | "const" | "using" | "await using",
+    allowMissingInitializer: boolean = false,
+  ): N.VariableDeclaration {
+    this.next(); // 解析 var/const后面的关键字，比如 `const a = 1;` 中的`a`
+    this.parseVar(node, false, kind, allowMissingInitializer); // 解析变量声明及其init信息，
+    this.semicolon(); // 处理结尾的分号；
+    return this.finishNode(node, "VariableDeclaration");
+  }
+```
+
+
+上面解析到的内容，会在`parseBlockOrModuleBlockBody`的循环解析过程中push到body节点中。
+
+至此解析完成。
