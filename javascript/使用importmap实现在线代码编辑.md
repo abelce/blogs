@@ -1,14 +1,57 @@
 
 
+在ES module中可以通过`import`来引入模块，通过相对或者绝对路径加载.
+```js
+import lodash from "https://esm.sh/lodash";
+```
+
+可当使用webpack等打包工具时明知需要使用 `import lodash from "lodash"`的方式就能加载对应的文件，这些工具通过nodejs在构建时映射到特定的文件，就能解决模块自动加问题。
+
+所以在浏览器中要只要解决了映射问题，就可以使用相同的方式引入模块。
+
+
 ## importmap
 
+在`<script>`中指定type为`importmap`，再通过JSON对象指定所有模块的映射，
+```html
+<script type="importmap">
+{
+  "imports": {
+    "lodash": "https://esm.sh/lodash",
+  }
+}
+</script>
+<script type="module">
+  import lodash from 'lodash';
+
+ console.log(lodash.sortBy([3, 2, 1]))
+</script>
+```
+映射的值必须是`./`、`../`、 `/`或者绝对URL。同时`imports`中的包并不一定会加载，只有在其他文件中使用了的包才会加载，未被其他脚本使用的包不会加载。
 
 
+#### scopes
+`imports`指定的映射是全局的，当某些文件需要老版本的`lodash`时， 通过`scopes`来指定。这里指定`/v1/`路径下的文件使用`3.0.0`版本。
 
-## importmap 作用
+```html
+<script type="importmap">
+{
+  "imports": {
+    "lodash": "https://esm.sh/lodash",
+  },
+  "scopes": {
+    "/v1/": {
+         "lodash": "https://esm.sh/lodash@3.0.0",
+    }
+  }
+}
+</script>
+```
 
 ## importmap兼容性
+
 目前主流的浏览器除了IE都支持，所以可以放心使用。
+
 ![](http://file.vwood.xyz/2023/12/15/upload_t6qde87qqpmu7m4onbckhhhb08oc4gir.png)
 
 ## 如何用importmap实现代码加载
